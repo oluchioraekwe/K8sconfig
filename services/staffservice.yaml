@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staff-service
+  labels:
+    app: staff-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: staff-service
+  template:
+    metadata:
+      labels:
+        app: staff-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: staff-service
+        image: oluchioraekwe/staffservice:latest
+        imagePullPolicy: "Always"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+          requests:
+            cpu: "200m"
+        ports:
+        - containerPort: 5000
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database-url
+        - name: BASEURL_AUTH
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: authservice-url
+        - name: PORT
+          value: "5000"
+        - name : ME_CONFIG_MONGODB_AUTH_DATABASE
+          value: students
+        - name : PORT_AUTH
+          value: "4000"
+        - name: NODE_ENV
+          value: "minikube"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: staff-micro-service
+spec:
+  selector:
+    app: staff-service
+  type: LoadBalancer  
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30800

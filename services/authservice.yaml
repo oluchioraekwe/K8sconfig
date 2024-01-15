@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: auth-service
+        image: oluchioraekwe/authservice:latest
+        imagePullPolicy: "Always"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+          requests:
+            cpu: "200m"
+        ports:
+        - containerPort: 4000
+        env:
+        - name: TOKEN_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: token-secret
+        - name: BASEURL_STUDENT
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: studentservice-url
+        - name: BASEURL_STAFF
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: staffservice-url
+        - name: PORT
+          value: "4000"
+        - name : STUDENT_PORT
+          value: "5050"
+        - name : STAFF_PORT
+          value: "5000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-micro-service
+spec:
+  selector:
+    app: auth-service
+  type: LoadBalancer  
+  ports:
+    - protocol: TCP
+      port: 4000
+      targetPort: 4000
+      nodePort: 30500
